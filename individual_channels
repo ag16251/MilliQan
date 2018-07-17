@@ -1,0 +1,28 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Fri Jul  6 15:11:49 2018
+
+@author: annagriffith
+"""
+from ROOT import TTree, TFile, TCanvas
+from array import array
+
+
+c1 = TCanvas('c1','The Ntuple canvas',200,10,700,780)
+file = TFile("test_data_2")
+tree = file.Get("t;1")
+c1.SetLogy()
+
+chani = 1
+
+for i in range(0,32):
+
+  def select_chan(i):
+
+    return "chan == " + str(i)
+
+  tree.Draw("height", select_chan(i))
+  def print_chan(i):
+    return "height_chan" + str(i) +".pdf"
+  c1.Print(print_chan(i))
