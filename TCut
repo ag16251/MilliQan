@@ -1,0 +1,39 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Fri Jul  6 15:11:49 2018
+
+@author: annagriffith
+"""
+from ROOT import TTree, TFile, TCanvas, TCut
+from ROOT import *
+from array import array
+from glob import glob
+
+
+c1 = TCanvas('c1','The Ntuple canvas',200,10,700,780)
+c1.SetLogy()
+files = glob("Run843_tripleChannelMay01BarsPanelsSlabs10mV/UX5MilliQan_Run*_tripleChannelMay01BarsPanelsSlabs10mV.root")
+
+chain = TChain("t")
+for f in files:
+  chain.Add(f)
+
+cut = TCut('MaxIf$(height,chan==18)>100&&MaxIf$(height,chan==21)>100&&MaxIf$(height,chan==20)>100&&MaxIf$(height,chan==28)>100')
+c0 = TCut('MaxIf$(height,chan==18)>100')
+c2 = TCut('MaxIf$(height,chan==21)>100')
+c3 = TCut('MaxIf$(height,chan==20)>100')
+c4 = TCut('MaxIf$(height,chan==28)>100')
+c15 = TCut('chan ==15')
+
+c5 = c0
+c5 += c2
+c5 += c3
+c5 += c4
+
+
+h = TH1F("h", "time with cut", 500, 0, 0)
+
+chain.Draw("time>>h",c5)
+
+c1.Print("time_cut2.pdf")
