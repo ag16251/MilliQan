@@ -1,0 +1,30 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Fri Jul  6 15:11:49 2018
+
+@author: annagriffith
+"""
+from ROOT import TTree, TFile, TCanvas, TChain
+
+from ROOT import *
+from array import array
+from glob import glob
+
+
+c1 = TCanvas('c1',"title", 1)
+
+files = glob("Run843_tripleChannelMay01BarsPanelsSlabs10mV/UX5MilliQan_Run*_tripleChannelMay01BarsPanelsSlabs10mV.root")
+
+chain = TChain("t")
+for f in files:
+   chain.Add(f)
+
+c1.SetLogy()
+
+
+h = TH1F("h", "area", 500, 0, 0)
+
+
+chain.Draw("area>>h")
+c1.Print("area.pdf")
