@@ -1,0 +1,58 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Fri Jul  6 15:11:49 2018
+
+@author: annagriffith
+"""
+from ROOT import TTree, TFile, TCanvas, TCut
+from ROOT import *
+from array import array
+from glob import glob
+
+
+
+c1 = TCanvas('c1','The Ntuple canvas',200,10,700,780)
+c1.SetLogy()
+
+files = glob("Run843_tripleChannelMay01BarsPanelsSlabs10mV/UX5MilliQan_Run*_tripleChannelMay01BarsPanelsSlabs10mV.root")
+
+chain = TChain("t")
+for f in files:
+  chain.Add(f)
+
+c0 = TCut('MaxIf$(height,chan==18)>100')
+c2 = TCut('MaxIf$(height,chan==21)>100')
+c3 = TCut('MaxIf$(height,chan==20)>100')
+c4 = TCut('MaxIf$(height,chan==28)>100')
+c5 = TCut('MinIf$(time,chan==21&&height>100)-MinIf$(time,chan==18&&height>100)<-20')
+
+def select_chan(i):
+    select_chan = "chan ==" + str(i)
+    chancut = TCut(select_chan)
+
+    c6 = TCut('MaxIf$(height,chan==18)>100')
+    c6 += c2
+    c6 += c3
+    c6 += c4
+    c6 += c5
+    c6 += chancut
+    cut = c6
+    del c6
+    return  cut
+
+
+def title(i):
+    return "time in channel " + str(i)
+
+def print_chan(i):
+    return "time_chan" + str(i) +".pdf"
+
+for i in range(0,32):
+  cut = '0'
+  print(cut)
+  h = TH1F("h", title(i), 300,0,0)
+  print(select_chan(i))
+  chain.Draw("time>>h", select_chan(i))
+  c1.Print(print_chan(i))
+
