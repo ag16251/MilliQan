@@ -1,0 +1,80 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Fri Jul  6 15:11:49 2018
+
+@author: annagriffith
+"""
+from ROOT import TTree, TFile, TCanvas, TCut, TLegend
+from ROOT import *
+from array import array
+from glob import glob
+
+
+
+c1 = TCanvas('c1','The Ntuple canvas',200,10,700,780)
+c1.SetLogy()
+
+files = glob("Run843_tripleChannelMay01BarsPanelsSlabs10mV/UX5MilliQan_Run*_tripleChannelMay01BarsPanelsSlabs10mV.root")
+
+chain = TChain("t")
+for f in files:
+  chain.Add(f)
+
+c0 = TCut('MaxIf$(height,chan==18)>100')
+c2 = TCut('MaxIf$(height,chan==21)>100')
+c3 = TCut('MaxIf$(height,chan==20)>100')
+c4 = TCut('MaxIf$(height,chan==28)>100')
+
+
+def select_chan(i):
+    select_chan = "chan ==" + str(i)
+    chancut = TCut(select_chan)
+
+    c6 = TCut('MaxIf$(height,chan==18)>100')
+    c6 += c2
+    c6 += c3
+    c6 += c4
+
+    c6 += chancut
+    cut = c6
+    del c6
+    return  cut
+
+
+def f_legend(i):
+    return "channel " + str(i)
+
+def print_chan(i):
+    return "height_chan" + str(i) +".pdf"
+def h(i):
+    hi = "h"+str(i)
+    return hi
+
+hlist=[0.0]*26
+
+for i in [0,1,24,25,8,9,6,7,16,17,12,13,2,3,22,23,4,5]:
+  cut = '0'
+  print(cut)
+  hi = "h"+str(i)
+  h = TH1F(hi, f_legend(i) , 30,0,1500)
+
+
+  chain.Draw("height>>"+hi, select_chan(i))
+  h.SetLineColor(i+2)
+  hlist[i] = h
+  chani = "channel"+str(i)
+
+
+
+for i in [0,1,24,25,8,9,6,7,16,17,12,13,2,3,22,23,4,5]:
+    if (i==0):
+        hlist[i].Draw()
+
+    else:
+        hlist[i].Draw("same")
+
+gPad.BuildLegend(0.3,0.6,0.6,0.9,"")
+gStyle.SetOptTitle(Heights in bar channels)
+c1.Print("heights.pdf")
+
