@@ -1,0 +1,226 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Fri Jul  6 15:11:49 2018
+
+@author: annagriffith
+"""
+
+#plots an average efficiency graph for each of the pmt tubes
+
+from ROOT import TTree, TFile, TCanvas, TCut
+from ROOT import *
+from array import array
+from glob import glob
+
+
+c1 = TCanvas('c1','The Ntuple canvas',200,10,700,780)
+
+runtime = 0
+
+run = str(raw_input('Run to plot: '))
+if run == '836':
+    files = glob("Run836_singleChannel10mVCH24/UX5MilliQan_Run*_singleChannel10mVCH24.root")
+    runtime = 0.09*60*60
+elif run == '837':
+    files = glob("Run837_singleChannel100mVCH24/UX5MilliQan_Run*_singleChannel100mVCH24.root")
+    runtime = 0.11*60*60
+elif run == '838':
+    files = glob("Run838_singleChannel10mVCH16/UX5MilliQan_Run*_singleChannel10mVCH16.root")
+    runtime = 0.09*60*60
+elif run == '839':
+    files = glob("Run839_singleChannel100mVCH16/UX5MilliQan_Run*_singleChannel100mVCH16.root")
+    runtime = 0.2*60*60
+elif run == '840':
+    files = glob("Run840_singleChannel10mVCH22/UX5MilliQan_Run*_singleChannel10mVCH22.root")
+    runtime = 0.8*60*60
+elif run == '841':
+    files = glob("Run841_singleChannel100mVCH22/UX5MilliQan_Run*_singleChannel100mVCH22.root")
+    runtime = 0.66*60*60
+elif run == '843':
+    files = glob("Run843_muoncut.root")
+    runtime = 194*60*60
+elif run == '1345':
+    files = glob("Run1345_software/UX5MilliQan_Run*_software_v14.root")
+    runtime = 6.5*60*60
+elif run == '1346':
+    files = glob("Run1346_Physics/UX5MilliQan_Run*_Physics_v14.root")
+    runtime = 51.8*60*60
+
+
+chain = TChain("t")
+for f in files:
+    chain.Add(f)
+
+pmt = str(raw_input('PMT to plot, (R878/ R7725/ ET): '))
+if pmt == 'ET':
+    bars = [17,25,9,24]
+    scale = 0.25
+elif pmt == 'R878':
+    bars = [4,1,8,6,7,16,12,13,2,3,23,0]
+    scale = 0.083333
+elif pmt == 'R7725':
+    bars = [22,5]
+    scale = 0.5
+
+# Choose a minimum height of pulses to be included in cut
+# cutlevel = str(raw_input('Height cut level: '))
+cutlevel = str(100)
+
+
+def cut(chan,cutlevel):
+    return 'MaxIf$(height,chan==' + str(chan) + ')>' +str(cutlevel)
+
+cut0 = cut(18,cutlevel)
+c0 = TCut(cut0)
+cut2 =cut(21,cutlevel)
+c2 = TCut(cut2)
+cut3 = cut(20,cutlevel)
+c3 = TCut(cut3)
+cut4 = cut(28,cutlevel)
+c4 = TCut(cut4)
+
+
+def h(i):
+    hi = "h"+str(i)
+    return hi
+
+hlist=[0.0]*26
+
+for i in bars:
+
+    if i == 0:
+        title_chan = str('0')
+        chan1 = str('6')
+        chan2 =str('2')
+    if i == 1:
+        title_chan = str('1')
+        chan1 = str('7')
+        chan2 =str('3')
+    if i == 24:
+        title_chan = str('24')
+        chan1 = str('16')
+        chan2 =str('22')
+    if i == 25:
+        title_chan = str('25')
+        chan1 = str('17')
+        chan2 =str('23')
+    if i == 8:
+        title_chan = str('8')
+        chan1 = str('4')
+        chan2 =str('12')
+    if i == 9:
+        title_chan = str('9')
+        chan1 = str('13')
+        chan2 =str('5')
+    if i == 6:
+        title_chan = str('6')
+        chan1 = str('0')
+        chan2 =str('2')
+    if i == 7:
+        title_chan = str('7')
+        chan1 = str('1')
+        chan2 =str('3')
+    if i == 16:
+        title_chan = str('16')
+        chan1 = str('24')
+        chan2 =str('22')
+    if i == 17:
+        title_chan = str('17')
+        chan1 = str('25')
+        chan2 =str('23')
+    if i == 12:
+        title_chan = str('12')
+        chan1 = str('8')
+        chan2 =str('4')
+    if i == 13:
+        title_chan = str('13')
+        chan1 = str('9')
+        chan2 =str('5')
+    if i == 2:
+        title_chan = str('2')
+        chan1 = str('6')
+        chan2 =str('0')
+    if i == 3:
+        title_chan = str('3')
+        chan1 = str('7')
+        chan2 =str('1')
+    if i == 22:
+        title_chan = str('22')
+        chan1 = str('16')
+        chan2 =str('24')
+    if i == 23:
+        title_chan = str('23')
+        chan1 = str('17')
+        chan2 =str('25')
+    if i == 4:
+        title_chan = str('4')
+        chan1 = str('8')
+        chan2 =str('12')
+    if i == 5:
+        title_chan = str('5')
+        chan1 = str('13')
+        chan2 =str('9')
+
+    cut_chan1 = cut(chan1,cutlevel)
+    c_chan1 = TCut(cut_chan1)
+    cut_chan2 = cut(chan2,cutlevel)
+    c_chan2 = TCut(cut_chan2)
+    cut_title = "chan ==" + str(title_chan)
+    c_title = TCut(cut_title)
+    cut_height = cut(title_chan,cutlevel)
+    c_height = TCut(cut_height)
+
+    def f_legend(title_chan):
+        return "channel " + str(title_chan)
+
+    def total_cut(chan1,chan2,title_chan):
+
+        c_tot = TCut(cut0)
+        c_tot += c2
+        c_tot += c3
+        c_tot += c4
+        c_tot += c_chan1
+        c_tot += c_chan2
+        c_tot += c_title
+
+        return c_tot
+
+    def title(pmt,run,cutlevel):
+        return str(pmt)+'ave_efficiency'+ '_cutlevel'+ str(cutlevel)+'Run'+str(run)
+
+    hi = "h"+str(i)
+    h = TH1F(hi, title(pmt,run,cutlevel), 100, 0, 1400)
+    chain.Draw("height>>"+hi , total_cut(chan1,chan2,title_chan))
+
+    def Int_bin(h, j):
+        tot = float(h.Integral(0,100))
+        bin = float(h.Integral(j,100))
+        Int = float(bin/tot)
+        return Int
+
+    hti = "ht"+str(i)
+    ht = TH1F(hti, f_legend(title_chan), 100,0,1400)
+    entry = [0]*100
+
+    for j in range (0,100):
+        entry[j] = Int_bin(h, j)
+        ht.Fill(j*14,entry[j])
+        ht.SetBinError(j+1,0)
+
+    hlist[i] = ht
+
+
+h_ave = TH1F("h_ave", "cumulative efficiency", 100,0,1400)
+
+for i in bars:
+    if (i==0):
+        h_ave = hlist[i].Clone("h_ave")
+    else:
+        h_ave.Add(hlist[i])
+
+h_ave.Scale(scale)
+h_ave.Draw("box")
+gStyle.SetOptTitle(0)
+c1.Print(title(pmt,run,cutlevel)+".pdf")
+
