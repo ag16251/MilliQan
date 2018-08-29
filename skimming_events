@@ -1,0 +1,65 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Fri Jul  6 15:11:49 2018
+
+@author: annagriffith
+"""
+
+# skims a tree into a smaller file to speed up computation according to cuts requiring hits in the 'slab' channels
+
+from ROOT import TTree, TFile, TCanvas, TCut, TLegend
+from ROOT import TEventList
+from ROOT import *
+from array import array
+from glob import glob
+
+
+
+c1 = TCanvas('c1','The Ntuple canvas',200,10,700,780)
+c1.SetLogy()
+
+files = glob("Run843_tripleChannelMay01BarsPanelsSlabs10mV/UX5MilliQan_Run*_tripleChannelMay01BarsPanelsSlabs10mV.root")
+#files = glob("Run1346_Physics/UX5MilliQan_Run*_Physics_v14.root")
+#files += glob("Run1349_Physics/UX5MilliQan_Run*_Physics_v14.root")
+#files += glob("Run1351_Physics/UX5MilliQan_Run*_Physics_v14.root")
+#files += glob("Run1354_Physics/UX5MilliQan_Run*_Physics_v14.root")
+#files += glob("Run1355_Physics/UX5MilliQan_Run*_Physics_v14.root")
+#files += glob("Run1356_Physics/UX5MilliQan_Run*_Physics_v14.root")
+
+chain = TChain("t")
+for f in files:
+    chain.Add(f)
+
+
+newfile = TFile("Run843_muoncut.root", "recreate")
+chain.LoadTree(0)
+newtree = chain.GetTree().CloneTree(0)
+
+
+
+c21 = TCut('MaxIf$(height,chan==21)>50')
+c20 = TCut('MaxIf$(height,chan==20)>50')
+c28 = TCut('MaxIf$(height,chan==28)>50')
+c18 = TCut('MaxIf$(height,chan==18)>50')
+
+c_tot = TCut('MaxIf$(height,chan==21)>50')
+c_tot += c20
+c_tot += c28
+c_tot += c18
+
+
+
+
+
+elist = TEventList("eventlist")
+chain.Draw(">>eventlist", c_tot)
+#elist = TEventList( gROOT.GetGlobal("gDirectory").Get("eventList") )
+
+
+for i in range(elist.GetN()):
+    chain.GetEntry(elist.GetEntry(i))
+    newtree.Fill()
+
+newtree.Print()
+newtree.AutoSave()
