@@ -1,0 +1,199 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Fri Jul  6 15:11:49 2018
+
+@author: annagriffith
+"""
+
+# produces max-height graphs/ rate graphs for the bar channels, applying cuts which veto possible events caused by cosmic rays
+#sort out 'height' 'pmt' options
+
+from ROOT import TTree, TFile, TCanvas
+from array import array
+from ROOT import *
+from glob import glob
+
+c1 = TCanvas('c1','The Ntuple canvas',100,10,700,780)
+c1.SetLogy()
+
+#choose run to plot
+
+run = str(raw_input('Run to plot: '))
+if run == '836':
+    files = glob("Run836_singleChannel10mVCH24/UX5MilliQan_Run*_singleChannel10mVCH24.root")
+
+elif run == '837':
+    files = glob("Run837_singleChannel100mVCH24/UX5MilliQan_Run*_singleChannel100mVCH24.root")
+
+elif run == '838':
+    files = glob("Run838_singleChannel10mVCH16/UX5MilliQan_Run*_singleChannel10mVCH16.root")
+
+elif run == '839':
+    files = glob("Run839_singleChannel100mVCH16/UX5MilliQan_Run*_singleChannel100mVCH16.root")
+
+elif run == '840':
+    files = glob("Run840_singleChannel10mVCH22/UX5MilliQan_Run*_singleChannel10mVCH22.root")
+
+elif run == '841':
+    files = glob("Run841_singleChannel100mVCH22/UX5MilliQan_Run*_singleChannel100mVCH22.root")
+
+elif run == '843':
+    files = glob("Run843_muoncut.root")
+    runtime = 194*60*60
+
+elif run == '1345':
+    files = glob("Run1345_software/UX5MilliQan_Run*_software_v14.root")
+    runtime = 6.5*60*60
+
+elif run == '1346':
+    files = glob("Run1346_Physics/UX5MilliQan_Run*_Physics_v14.root")
+    runtime = 51.8*60*60
+
+elif run == 'Physics':
+    files = glob("Physics.root")
+
+plot = str(raw_input('Choose what to plot (height/ rate): '))
+pmt = str(raw_input('PMT to plot, (R878/ R7725/ ET/ individual): '))
+if pmt == 'ET':
+    bars = [24,25,9,17]
+elif pmt == 'R878':
+    bars = [4,1,8,6,7,16,12,13,2,3,23,0]
+elif pmt == 'R7725':
+    bars = [5,22]
+elif pmt == 'individual':
+    bars = [0,1,24,25,8,9,6,7,16,17,12,13,2,3,22,23,4,5]
+
+
+chain = TChain("t")
+for f in files:
+    chain.Add(f)
+
+# Choose a height to veto cosmic rays, exclude events in the slabs surrounding the channel with this max height
+cutlevel = str(raw_input('Cosmic ray height cut level: '))
+#cutlevel = str(100)
+
+x=["0","1","24","25","8","9","6","7","16","17","12","13","2","3","22","23","4","5"]
+
+hlist=[0.0]*26
+
+for i in bars:
+    title_chan = str(i)
+    if i == 0 or 1 or 24 or 25 or 8 or 9:
+        chan1 = "27"
+        chan2 = "10"
+        chan3 = "29"
+        if run == '1345':
+            chan4 = "18"
+            chan5 = "20"
+    elif i == 6 or 7 or 16 or 17 or 12 or 13:
+        chan1 = "30"
+        chan2 = "11"
+        chan3 = "19"
+        if run == '1345':
+            chan4 = "28"
+            chan5 = "20"
+    elif i == 2 or 3 or 22 or 23 or 4 or 5:
+        chan1 = "31"
+        chan2 = "14"
+        chan3 = "26"
+        if run == '1345':
+            chan4 = "28"
+            chan5 = "21"
+
+    def cut(chan,cutlevel):
+        return 'MaxIf$(height,chan==' + str(chan) + ')<' +str(cutlevel)
+
+    cut_title = "chan ==" + str(title_chan)
+    c_title = TCut(cut_title)
+    cut_chan1 = cut(chan1,cutlevel)
+    c_chan1 = TCut(cut_chan1)
+    cut_chan2 = cut(chan2,cutlevel)
+    c_chan2 = TCut(cut_chan2)
+    cut_chan3 = cut(chan3,cutlevel)
+    c_chan3 = TCut(cut_chan3)
+    if run == '1345':
+        cut_chan4 = cut(chan4,cutlevel)
+        c_chan4 = TCut(cut_chan4)
+        cut_chan5 = cut(chan5,cutlevel)
+        c_chan5 = TCut(cut_chan5)
+
+    def total_cut(chan1,chan2,chan3,title_chan,run):
+        if run == '1345':
+            c_tot = TCut(cut_chan1)
+            c_tot += c_chan2
+            c_tot += c_chan3
+            c_tot += c_chan4
+            c_tot += c_chan5
+            c_tot += c_title
+            return c_tot
+        else:
+            c_tot = TCut(cut_chan1)
+            c_tot += c_chan2
+            c_tot += c_chan3
+            c_tot += c_title
+            return c_tot
+
+    def title(title_chan,run,cutlevel):
+        if plot == 'height':
+            return 'cosmicraycut_nPE_chan' + str(title_chan) + '_run' + str(run) +'cutlevel_'+str(cutlevel)
+        elif plot == 'rate':
+            return 'cosmicraycut_rate_chan' + str(title_chan) + '_run' + str(run) +'cutlevel_'+str(cutlevel)
+
+    hi = "h"+str(i)
+
+    h = TH1F(hi, title(title_chan,run,cutlevel), 300, 0, 6000)
+    h.GetXaxis().SetTitle('nPE')
+    h.GetYaxis().SetTitle('Entries')
+    chain.Draw("Max$(nPE)>>"+hi , total_cut(chan1,chan2,chan3,title_chan,run))
+
+    if plot == 'height':
+
+        c1.Print(title(title_chan,run,cutlevel)+".pdf")
+
+    if plot == 'rate':
+
+        def select_chan(i):
+            return 'chan ==' + str(i)
+
+        def Int_bin(h, j):
+            tot = runtime
+            bin = float(h.Integral(j,140))
+            Int = float(bin/tot)
+            return Int
+
+        # second histogram to plot rates, currently zoomed into 0-200 xvals, change to 0-1400 for full range
+        hri = "hr"+str(i)
+        hr = TH1F(hri, select_chan(i), 140,0,1400)
+        entry = [0]*140
+
+        for j in range (0,140):
+            entry[j] = Int_bin(h, j)
+            hr.Fill(j*10,entry[j])
+            hr.SetBinError(j+1,0)
+
+
+        hlist[i] = hr
+        hlist[i].GetXaxis().SetTitle('Threshold (mV)')
+        hlist[i].GetYaxis().SetTitle('Rate (Hz)')
+
+        if pmt == 'individual':
+
+            hlist[i].Draw("box")
+            c1.Print(title(title_chan,run,cutlevel)+".pdf")
+
+
+if pmt != 'individual':
+    for i in bars:
+        if i==24 or i== 5 or i ==4:
+            hlist[i].Draw("PLC")
+        else:
+            hlist[i].Draw("same PLC")
+
+    gPad.RedrawAxis()
+    if run == '843':
+        gPad.BuildLegend(0.2,0.4,0.5,0.7,"")
+    else:
+        gPad.BuildLegend(0.6,0.4,0.9,0.7,"")
+    gStyle.SetOptTitle(0)
+    c1.Print(str(pmt)+title(title_chan,run,cutlevel)+".pdf")
