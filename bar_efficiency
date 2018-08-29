@@ -1,0 +1,195 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Fri Jul  6 15:11:49 2018
+
+@author: annagriffith
+"""
+
+# plots the efficiency of all the different bars, requiring two of the other bars 'en-route' to have signals in.
+
+from ROOT import TTree, TFile, TCanvas, TCut
+from ROOT import *
+from array import array
+from glob import glob
+
+
+c1 = TCanvas('c1','The Ntuple canvas',200,10,700,780)
+runtime = 0
+
+run = str(raw_input('Run to plot: '))
+if run == '836':
+    files = glob("Run836_singleChannel10mVCH24/UX5MilliQan_Run*_singleChannel10mVCH24.root")
+    runtime = 0.09*60*60
+elif run == '837':
+    files = glob("Run837_singleChannel100mVCH24/UX5MilliQan_Run*_singleChannel100mVCH24.root")
+    runtime = 0.11*60*60
+elif run == '838':
+    files = glob("Run838_singleChannel10mVCH16/UX5MilliQan_Run*_singleChannel10mVCH16.root")
+    runtime = 0.09*60*60
+elif run == '839':
+    files = glob("Run839_singleChannel100mVCH16/UX5MilliQan_Run*_singleChannel100mVCH16.root")
+    runtime = 0.2*60*60
+elif run == '840':
+    files = glob("Run840_singleChannel10mVCH22/UX5MilliQan_Run*_singleChannel10mVCH22.root")
+    runtime = 0.8*60*60
+elif run == '841':
+    files = glob("Run841_singleChannel100mVCH22/UX5MilliQan_Run*_singleChannel100mVCH22.root")
+    runtime = 0.66*60*60
+elif run == '843':
+    files = glob("Run843_muoncut.root")
+    runtime = 194*60*60
+elif run == '1346':
+    files = glob("Run1346_Physics/UX5MilliQan_Run*_Physics_v14.root")
+    runtime = 51.8*60*60
+
+chain = TChain("t")
+for f in files:
+    chain.Add(f)
+
+
+# Choose a minimum height of pulses in the 'en-route' channels
+# cutlevel = str(raw_input('Height cut level: '))
+cutlevel = str(100)
+
+
+bars = [0,1,24,25,8,9,6,7,16,17,12,13,2,3,22,23,4,5]
+
+for i in bars:
+    if i == 0:
+        title_chan = str('0')  #channel to test
+        chan1 = str('6') #channels to require pulses in
+        chan2 =str('2')
+    if i == 1:
+        title_chan = str('1')
+        chan1 = str('7')
+        chan2 =str('3')
+    if i == 24:
+        title_chan = str('24')
+        chan1 = str('16')
+        chan2 =str('22')
+    if i == 25:
+        title_chan = str('25')
+        chan1 = str('17')
+        chan2 =str('23')
+    if i == 8:
+        title_chan = str('8')
+        chan1 = str('4')
+        chan2 =str('12')
+    if i == 9:
+        title_chan = str('9')
+        chan1 = str('13')
+        chan2 =str('5')
+    if i == 6:
+        title_chan = str('6')
+        chan1 = str('0')
+        chan2 =str('2')
+    if i == 7:
+        title_chan = str('7')
+        chan1 = str('1')
+        chan2 =str('3')
+    if i == 16:
+        title_chan = str('16')
+        chan1 = str('24')
+        chan2 =str('22')
+    if i == 17:
+        title_chan = str('17')
+        chan1 = str('25')
+        chan2 =str('23')
+    if i == 12:
+        title_chan = str('12')
+        chan1 = str('8')
+        chan2 =str('4')
+    if i == 13:
+        title_chan = str('13')
+        chan1 = str('9')
+        chan2 =str('5')
+    if i == 2:
+        title_chan = str('2')
+        chan1 = str('6')
+        chan2 =str('0')
+    if i == 3:
+        title_chan = str('3')
+        chan1 = str('7')
+        chan2 =str('1')
+    if i == 22:
+        title_chan = str('22')
+        chan1 = str('16')
+        chan2 =str('24')
+    if i == 23:
+        title_chan = str('23')
+        chan1 = str('17')
+        chan2 =str('25')
+    if i == 4:
+        title_chan = str('4')
+        chan1 = str('8')
+        chan2 =str('12')
+    if i == 5:
+        title_chan = str('5')
+        chan1 = str('13')
+        chan2 =str('9')
+
+
+    def cut(chan,cutlevel):
+        return 'MaxIf$(height,chan==' + str(chan) + ')>' +str(cutlevel)
+
+
+
+    cut0 = cut(18,cutlevel)
+    c0 = TCut(cut0)
+    cut2 =cut(21,cutlevel)
+    c2 = TCut(cut2)
+    cut3 = cut(20,cutlevel)
+    c3 = TCut(cut3)
+    cut4 = cut(28,cutlevel)
+    c4 = TCut(cut4)
+
+    cut_chan1 = cut(chan1,cutlevel)
+    c_chan1 = TCut(cut_chan1)
+    cut_chan2 = cut(chan2,cutlevel)
+    c_chan2 = TCut(cut_chan2)
+    cut_title = "chan ==" + str(title_chan)
+    c_title = TCut(cut_title)
+    cut_height = cut(title_chan,cutlevel)
+    c_height = TCut(cut_height)
+
+    def total_cut(chan1,chan2,title_chan):
+
+            c_tot = TCut(cut0)
+            c_tot += c2
+            c_tot += c3
+            c_tot += c4
+            c_tot += c_title
+            c_tot += c_chan1
+            c_tot += c_chan2
+
+            return c_tot
+
+
+    def title(title_chan,cutlevel,run):
+        return 'efficiency_chan' + str(title_chan) + '_cutlevel' + str(cutlevel)+'Run'+ str(run)
+
+    h = TH1F("h", title(title_chan,cutlevel,run), 100, 0, 1400)
+
+    chain.Draw("height>>h" , total_cut(chan1,chan2,title_chan))
+
+
+    def Int_bin(h, i):
+        tot = float(h.Integral(0,100))
+        bin = float(h.Integral(i,100))
+        Int = float(bin/tot)
+        return Int
+
+    h2 = TH1F("h2", title(title_chan,cutlevel,run), 100,0,1400)
+    entry = [0]*100
+
+    for i in range (0,100):
+        entry[i] = Int_bin(h, i)
+        h2.Fill(i*14,entry[i])
+        h2.SetBinError(i+1,0)
+
+    h2.GetXaxis().SetTitle('Threshold (mV)')
+    h2.GetYaxis().SetTitle('Efficiency')
+    h2.Draw("box")
+    c1.Print(title(title_chan,cutlevel,run)+".pdf")
+
