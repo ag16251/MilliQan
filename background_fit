@@ -1,0 +1,169 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Fri Jul  6 15:11:49 2018
+
+@author: annagriffith
+"""
+
+# produces max-height graphs for the bar channels, plotting a background rate from run 1345 on the same canvas
+
+
+from ROOT import TTree, TFile, TCanvas
+from array import array
+from ROOT import *
+from glob import glob
+
+c1 = TCanvas('c1','The Ntuple canvas',100,10,700,780)
+c1.SetLogy()
+#c1.SetLogx()
+
+
+run = str(1345)
+b_files = glob("Run1345_software/UX5MilliQan_Run*_software_v14.root")
+runtime = 6.5*60*60
+
+# 'beam on' data files
+#files = glob("Run1346_Physics/UX5MilliQan_Run*_Physics_v14.root")
+files = glob("Physics.root")
+
+bars = [0,1,24,25,8,9,6,7,16,17,12,13,2,3,22,23,4,5]
+#bars = [0]
+
+chain = TChain("t")
+for f in files:
+    chain.Add(f)
+
+b_chain = TChain("t")
+for f in b_files:
+    b_chain.Add(f)
+
+# Choose a height to veto cosmic rays, exclude events in the slabs surrounding the channel with this max height
+#cutlevel = str(raw_input('Cosmic ray height cut level: '))
+cutlevel = str(100)
+
+
+hlist=[0.0]*26
+
+for i in bars:
+    title_chan = str(i)
+    if i == 0 or 1 or 24 or 25 or 8 or 9:
+        chan1 = "27"
+        chan2 = "10"
+        chan3 = "29"
+        if run == '1345':
+            chan4 = "18"
+            chan5 = "20"
+    elif i == 6 or 7 or 16 or 17 or 12 or 13:
+        chan1 = "30"
+        chan2 = "11"
+        chan3 = "19"
+        if run == '1345':
+            chan4 = "28"
+            chan5 = "20"
+    elif i == 2 or 3 or 22 or 23 or 4 or 5:
+        chan1 = "31"
+        chan2 = "14"
+        chan3 = "26"
+        if run == '1345':
+            chan4 = "28"
+            chan5 = "21"
+
+    def cut(chan,cutlevel):
+        return 'MaxIf$(height,chan==' + str(chan) + ')<' +str(cutlevel)
+
+    cut_title = "chan ==" + str(title_chan)
+    c_title = TCut(cut_title)
+    cut_chan1 = cut(chan1,cutlevel)
+    c_chan1 = TCut(cut_chan1)
+    cut_chan2 = cut(chan2,cutlevel)
+    c_chan2 = TCut(cut_chan2)
+    cut_chan3 = cut(chan3,cutlevel)
+    c_chan3 = TCut(cut_chan3)
+    if run == '1345':
+        cut_chan4 = cut(chan4,cutlevel)
+        c_chan4 = TCut(cut_chan4)
+        cut_chan5 = cut(chan5,cutlevel)
+        c_chan5 = TCut(cut_chan5)
+
+    def total_cut(chan1,chan2,chan3,title_chan,run):
+        if run == '1345':
+            c_tot = TCut(cut_chan1)
+            c_tot += c_chan2
+            c_tot += c_chan3
+            c_tot += c_chan4
+            c_tot += c_chan5
+            c_tot += c_title
+            return c_tot
+        else:
+            c_tot = TCut(cut_chan1)
+            c_tot += c_chan2
+            c_tot += c_chan3
+            c_tot += c_title
+            return c_tot
+
+    def title(title_chan,run,cutlevel):
+        return 'cosmicraycut_height_chan' + str(title_chan) + '_Physicsrun_cutlevel_'+str(cutlevel)
+
+
+    hbi = "hb"+str(i)
+    binLowE = [0,10,20,30,40,50,60,70,80,90,100,125, 150,175,200,250,300,350,400,500,600,1000,1400]
+#    binLowE = [0,10,20,30,40,50,60,70,80,90,100]
+#   binLowE = [0,100,200,300,400,500,600,700,800,900,1000,1100,1200,1300,1400,1500,1600,1700,1800,1900,2000,2100,2200,2300,2400,2500,2600,2700,2800,2900,3000,3100,3200,3300,3400,3500,3600,3700,3800,3900,4000,4250,4500,5500]
+
+    hb = TH1F(hbi, "background chan = " + str(i), 22, array('f',binLowE))
+    hb.GetXaxis().SetTitle('Height (mV)')
+    hb.GetYaxis().SetTitle('Events per mV')
+    b_chain.Draw("Max$(height)>>"+hbi , total_cut(chan1,chan2,chan3,title_chan,1345))
+    hb.Sumw2()
+    hb.Scale(1.,"width")
+    hb.Scale(31.508)
+
+#    func = TF1("func", "[0]*pow(x,[1])", 1., 100.)
+#   func.SetParameter(0,1.E5)
+#   func.SetParameter(1,-2.0)
+#    hb.Fit("func")
+#   gStyle.SetStatW(0.1)
+#   gStyle.SetStatH(0.1)
+#   gStyle.SetOptFit(0011)
+
+#    hb.Draw("BOX E1")
+#    c1.Print("fit1"+title(title_chan,1346,cutlevel)+"_background.pdf")
+
+#   func2 = TF1("func2", "[0]*pow(x,[1])", 1., 100.)
+#   func2.SetParameter(0,1.E5)
+#   func2.FixParameter(1,-1.70)
+#    hb.Fit("func2")
+
+
+#    fit.SetLineColor(kBlue-8)
+#    fit.SetLineWidth(3)
+#    hb.Fit("fit", "R")
+
+#    gStyle.SetStatW(0.1)
+#   gStyle.SetStatH(0.1)
+#   gStyle.SetOptFit(0011)
+
+    hi = "h"+str(i)
+
+    h = TH1F(hi, "Physics run chan = " +str(i), 22, array('f',binLowE))
+    h.GetXaxis().SetTitle('Height (mV)')
+    h.GetYaxis().SetTitle('Events per mV')
+    chain.Draw("Max$(height)>>"+hi , total_cut(chan1,chan2,chan3,title_chan,1346), " HIST")
+    h.Sumw2()
+    h.Scale(1.,"width")
+
+#    h_ave = TH1F("h_ave", "Height minus background", 22, array('f',binLowE))
+#   h_ave = h.Clone("h_ave")
+#   h_ave.Add(hb, -1)
+#   h_ave.Draw("HIST")
+
+
+    h.Draw("BOX E1 PLC")
+    hb.Draw("same HIST PLC")
+    gStyle.SetPalette(55)
+    gPad.BuildLegend(0.6,0.4,0.9,0.7,"")
+#    gStyle.SetOptTitle(0)
+
+    c1.Print(title(title_chan,run,cutlevel)+"_background.pdf")
+
