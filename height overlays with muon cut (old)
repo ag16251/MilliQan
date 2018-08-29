@@ -31,14 +31,14 @@ def select_chan(i):
     select_chan = "chan ==" + str(i)
     chancut = TCut(select_chan)
 
-    c6 = TCut('MaxIf$(height,chan==18)>100')
-    c6 += c2
-    c6 += c3
-    c6 += c4
+    c_tot = TCut('MaxIf$(height,chan==18)>100')
+    c_tot += c2
+    c_tot += c3
+    c_tot += c4
 
     c6 += chancut
-    cut = c6
-    del c6
+    cut = c_tot
+    del c_tot
     return  cut
 
 
@@ -76,5 +76,5 @@ for i in [0,1,24,25,8,9,6,7,16,17,12,13,2,3,22,23,4,5]:
 
 gPad.BuildLegend(0.3,0.6,0.6,0.9,"")
 gStyle.SetOptTitle(Heights in bar channels)
-c1.Print("heights.pdf")
+c1.Print("heightoverlay.pdf")
 
