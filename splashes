@@ -1,0 +1,216 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Fri Jul  6 15:11:49 2018
+
+@author: annagriffith
+"""
+
+# Requires pulses going straight through the detector, ie through channels 18-0-20-6-28-2-21, the specific route is specified by 'titlechan' or 'passing through chan' on the title of the graph produced.
+# Requiring this path, heights(/nPE) in surrounding channels will be plotted to look at the 'splashes produced'
+
+from ROOT import TTree, TFile, TCanvas
+from array import array
+from ROOT import *
+from glob import glob
+
+c1 = TCanvas('c1','The Ntuple canvas',100,10,700,780)
+c1.SetLogy()
+runtime = 0
+
+run = str(raw_input('Run to plot: '))
+if run == '836':
+    files = glob("Run836_singleChannel10mVCH24/UX5MilliQan_Run*_singleChannel10mVCH24.root")
+    runtime = 0.09*60*60
+elif run == '837':
+    files = glob("Run837_singleChannel100mVCH24/UX5MilliQan_Run*_singleChannel100mVCH24.root")
+    runtime = 0.11*60*60
+elif run == '838':
+    files = glob("Run838_singleChannel10mVCH16/UX5MilliQan_Run*_singleChannel10mVCH16.root")
+    runtime = 0.09*60*60
+elif run == '839':
+    files = glob("Run839_singleChannel100mVCH16/UX5MilliQan_Run*_singleChannel100mVCH16.root")
+    runtime = 0.2*60*60
+elif run == '840':
+    files = glob("Run840_singleChannel10mVCH22/UX5MilliQan_Run*_singleChannel10mVCH22.root")
+    runtime = 0.8*60*60
+elif run == '841':
+    files = glob("Run841_singleChannel100mVCH22/UX5MilliQan_Run*_singleChannel100mVCH22.root")
+    runtime = 0.66*60*60
+elif run == '843':
+    files = glob("Run843_muoncut.root")
+    runtime = 194*60*60
+elif run == '1345':
+    files = glob("Run1345_software/UX5MilliQan_Run*_software_v14.root")
+    runtime = 6.5*60*60
+elif run == '1346':
+    files = glob("Run1346_Physics/UX5MilliQan_Run*_Physics_v14.root")
+    runtime = 51.8*60*60
+elif run == 'Physics':
+    files = glob("muoncut_Physics.root")
+
+chain = TChain("t")
+for f in files:
+    chain.Add(f)
+
+# height of pulse required in the cut
+cutlevel = str(100)
+
+def cut(chan,cutlevel):
+    return 'MaxIf$(height,chan==' + str(chan) + ')>' +str(cutlevel)
+
+
+#cut level looking at nPE instead of height
+ncutlevel = str(1000)
+
+def ncut(chan,ncutlevel):
+    return 'MaxIf$(nPE,chan==' + str(chan) + ')>'+str(ncutlevel)
+
+#bars in the first layer
+bars = [0,1,24,25,8,9]
+
+
+#choose whether to put a time requirement on the pulses coming through channels 18 and 21
+time = str(raw_input('Time cut (yes/no): '))
+
+hlist=[0.0]*26
+
+for i in bars:
+    if i == 0:
+        title_chan = str('0')
+        chan1 = str('6')
+        chan2 =str('2')
+        #surround = [3,23,16,9]
+        surround = [24,16,22,25,17,23,1,7,3,8,9,12,13,4,5]  #surrounding channels to look at 'splashes' in
+    if i == 1:
+        title_chan = str('1')
+        chan1 = str('7')
+        chan2 =str('3')
+        surround = [24,6,2,0,16,22,25,17,23,8,9,12,13,4,5]
+    if i == 24:
+        title_chan = str('24')
+        chan1 = str('16')
+        chan2 =str('22')
+        surround = [0,6,2,25,17,23,8,12,4,1,7,3,9,13,5]
+    if i == 25:
+        title_chan = str('25')
+        chan1 = str('17')
+        chan2 =str('23')
+        surround = [24,7,3,1,16,22,9,13,5,0,6,2,8,12,4]
+    if i == 8:
+        title_chan = str('8')
+        chan1 = str('4')
+        chan2 =str('12')
+        surround = [24,16,22,25,17,23,9,13,5,0,6,2,1,7,3]
+    if i == 9:
+        title_chan = str('9')
+        chan1 = str('13')
+        chan2 =str('5')
+        surround = [24,12,4,8,16,22,25,17,23,0,6,2,1,7,3]
+
+    for x in surround:
+        #require that pulse travels all the way through detector
+        cut0 = cut(18,cutlevel)
+        c0 = TCut(cut0)
+        cut2 =cut(21,cutlevel)
+        c2 = TCut(cut2)
+        cut3 = cut(20,cutlevel)
+        c3 = TCut(cut3)
+        cut4 = cut(28,cutlevel)
+        c4 = TCut(cut4)
+
+        #requirements on spectific route through detector
+        cut_chan1 = ncut(chan1,ncutlevel)
+        c_chan1 = TCut(cut_chan1)
+        cut_chan2 = ncut(chan2,ncutlevel)
+        c_chan2 = TCut(cut_chan2)
+        cut_title = ncut(title_chan,ncutlevel)
+        c_title = TCut(cut_title)
+        cut_xchan = "chan ==" + str(x)
+        c_xchan = TCut(cut_xchan)
+
+        #requirements on time taken to travel through detector
+        def time_cut(cutlevel):
+            cuttime = 'MinIf$(time_module_calibrated,chan==21&&height>'+str(cutlevel) +')-MinIf$(time_module_calibrated,chan==18&&height>' + str(cutlevel)+')>-20'
+            #selects muons going in forward direction
+            return cuttime
+
+        cuttime = time_cut(cutlevel)
+        c_time = TCut(cuttime)
+
+        def tot_cut(time,chan1,chan2,title_chan,x):
+            if time == "yes":
+                c_tot = TCut(cut0)
+                c_tot += c2
+                c_tot += c3
+                c_tot += c4
+                c_tot += c_chan1
+                c_tot += c_chan2
+                c_tot += c_title
+                c_tot += c_xchan
+                c_tot += c_time
+                return c_tot
+
+            else:
+                c_tot = TCut(cut0)
+                c_tot += c2
+                c_tot += c3
+                c_tot += c4
+                c_tot += c_chan1
+                c_tot += c_chan2
+                c_tot += c_title
+                c_tot += c_xchan
+                return c_tot
+
+
+        def select_chan(i):
+            return "nPE splashes through chan = "+str(i)
+
+        def print_chan(i, x, time,run):
+            return "aveRun"+str(run)+"_splash_throughchan"+str(i)+"_"+str(time) +".pdf"
+
+
+        hx = "h"+str(x)
+        h = TH1F(hx, select_chan(i), 100, 0, 6000)
+        chain.Draw("Max$(nPE)>>"+hx, tot_cut(time,chan1,chan2,title_chan,x))
+        hlist[x] = h
+        hlist[x].GetXaxis().SetTitle('nPE')
+        hlist[x].GetYaxis().SetTitle('Entries')
+
+#chain.Draw("box")
+#c1.Print(print_chan(i,x,time,run))
+
+    h_ave = TH1F("h_ave", "splashes through chan = "+str(i), 100,0,6000)
+
+    for x in surround:
+        if i == 24:
+            if x == 0 :
+#hlist[x].Draw("box PLC")
+                h_ave = hlist[x].Clone("h_ave")
+            else:
+#hlist[x].Draw("same box PLC")
+                h_ave.Add(hlist[x])
+        else:
+            if x == 24 :
+# hlist[x].Draw("box PLC")
+                h_ave = hlist[x].Clone("h_ave")
+            else:
+#hlist[x].Draw("same box PLC")
+                h_ave.Add(hlist[x])
+
+#    fit = TF1("fit", "landau", 0, 150)
+#   fit.SetParameter(1,0.7776)
+#   fit.SetParameter(1,3.535)
+
+#   fit.SetLineColor(kBlue-8)
+#   fit.SetLineWidth(3)
+#   h_ave.Fit("fit", "R")
+#   gStyle.SetStatW(0.1)
+#   gStyle.SetStatH(0.1)
+#   gStyle.SetOptFit(0011)
+
+    h_ave.Draw("box")
+#gPad.BuildLegend(0.6,0.4,0.9,0.7,"")
+#    gStyle.SetOptTitle(0)
+    c1.Print(print_chan(i,x,time,run))
+
