@@ -1,0 +1,100 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Fri Jul  6 15:11:49 2018
+
+@author: annagriffith
+"""
+from ROOT import TTree, TFile, TCanvas, TCut
+from ROOT import *
+from array import array
+from glob import glob
+
+
+# plots correlation between minimum times in different channels
+
+c1 = TCanvas('c1','The Ntuple canvas',200,10,700,780)
+
+#files = glob("Run843_tripleChannelMay01BarsPanelsSlabs10mV/UX5MilliQan_Run*_tripleChannelMay01BarsPanelsSlabs10mV.root")
+files = glob("Run843_muoncut.root")
+
+chain = TChain("t")
+for f in files:
+    chain.Add(f)
+
+tight = '0'
+
+cutlevel = str(input('Set a cut level: '))
+
+def cut(chan,cutlevel):
+    return 'MaxIf$(height,chan==' + str(chan) + ')>' +str(cutlevel)
+
+#cut = TCut('MaxIf$(height,chan==18)>100&&MaxIf$(height,chan==21)>100&&MaxIf$(height,chan==20)>100&&MaxIf$(height,chan==28)>100')
+
+cut0 = cut(18,cutlevel)
+c0 = TCut(cut0)
+cut2 =cut(21,cutlevel)
+c2 = TCut(cut2)
+cut3 = cut(20,cutlevel)
+c3 = TCut(cut3)
+cut4 = cut(28,cutlevel)
+c4 = TCut(cut4)
+
+#requires particles traveling in positive direction (muons)
+def time_cut(cutlevel):
+    cuttime = 'MinIf$(time,chan==21&&height>'+str(cutlevel) +')-MinIf$(time,chan==18&&height>' + str(cutlevel)+')>-20'
+    return  cuttime
+
+cuttime = time_cut(cutlevel)
+ctime = TCut(cuttime)
+
+
+xchan = str(raw_input('Plot min in chan : '))
+ychan = str(raw_input('Against min in chan: '))
+
+# cuts out (0,0) values produced in boolean MIN$IF condition
+def minimum_cut(cutlevel, chan):
+    return "MaxIf$(height, chan=="+str(chan)+")>0"
+
+cut_minx = minimum_cut(cutlevel, xchan)
+cminx = TCut(cut_minx)
+
+cut_miny = minimum_cut(cutlevel, ychan)
+cminy = TCut(cut_miny)
+
+time = str(raw_input("Include a 'time cut'? (yes/no) : "))
+
+def total_cut(time):
+    if time == "no":
+        c_tot = TCut(cut0)
+        c_tot += c2
+        c_tot += c3
+        c_tot += c4
+        c_tot += cminx
+        c_tot += cminy
+        return c_tot
+    if time == "yes":
+        c_tot = TCut(cut0)
+        c_tot += c2
+        c_tot += c3
+        c_tot += c4
+        c_tot += cminx
+        c_tot += cminy
+        c_tot += ctime
+        return c_tot
+
+
+
+def title(cutlevel,time,xchan,ychan):
+    return 'tmc_min'+str(xchan)+':min'+str(ychan)+'_' + str(cutlevel) + + "timecut_" +"str(time)
+
+h = TH2F("h", title(cutlevel,time,xchan,ychan), 100, 0, 0, 100, 0, 0)
+h.SetMarkerStyle(3)
+h.GetXaxis().SetTitle('channel '+str(xchan))
+h.GetYaxis().SetTitle('channel '+str(ychan))
+chain.Draw( "MinIf$(time_module_calibrated, chan=="+str(ychan)+"):MinIf$(time_module_calibrated, chan =="+str(xchan)+")>>h",total_cut(time),"COLZ")
+
+#TF1 = TF1("line","x-20",320,440)
+#line.Draw("same")
+
+c1.Print(title(cutlevel,time,xchan,ychan)+".pdf")
