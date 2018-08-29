@@ -14,7 +14,6 @@ file = TFile("test_data_2")
 tree = file.Get("t;1")
 c1.SetLogy()
 
-chani = 1
 
 for i in range(0,32):
 
