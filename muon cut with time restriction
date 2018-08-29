@@ -26,13 +26,13 @@ c2 = TCut('MaxIf$(height,chan==21)>100')
 c3 = TCut('MaxIf$(height,chan==20)>100')
 c4 = TCut('MaxIf$(height,chan==28)>100')
 c5 = TCut('MinIf$(time,chan==21&&height>100)-MinIf$(time,chan==18&&height>100)<-20')
-c15 = TCut('chan==15')
 
-c6 = c0
-c6 += c2
-c6 += c3
-c6 += c4
-c6 += c5
+
+c_tot = c0
+c_tot += c2
+c_tot += c3
+c_tot += c4
+c_tot += c5
 
 
 
@@ -40,4 +40,4 @@ h = TH1F("h", "time_cut_long", 500,0,0)
 
 
 chain.Draw("time>>h", c6)
-c1.Print("time_cut_long2.pdf")
+c1.Print("time_muon_timecut.pdf")
