@@ -1,0 +1,301 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Fri Jul  6 15:11:49 2018
+
+@author: annagriffith
+"""
+
+# produces ROC graphs for the bar channels, including an option for applying cuts which veto possible events caused by cosmic rays, and an option to produce overlays for different pmts
+
+from ROOT import TTree, TFile, TCanvas
+from array import array
+from ROOT import *
+from glob import glob
+
+c1 = TCanvas('c1','The Ntuple canvas',100,10,700,780)
+
+#choose run to plot
+
+run = str(raw_input('Run to plot: '))
+if run == '836':
+    e_files = glob("Run836_singleChannel10mVCH24/UX5MilliQan_Run*_singleChannel10mVCH24.root")
+
+elif run == '837':
+    e_files = glob("Run837_singleChannel100mVCH24/UX5MilliQan_Run*_singleChannel100mVCH24.root")
+
+elif run == '838':
+    e_files = glob("Run838_singleChannel10mVCH16/UX5MilliQan_Run*_singleChannel10mVCH16.root")
+
+elif run == '839':
+    e_files = glob("Run839_singleChannel100mVCH16/UX5MilliQan_Run*_singleChannel100mVCH16.root")
+
+elif run == '840':
+    e_files = glob("Run840_singleChannel10mVCH22/UX5MilliQan_Run*_singleChannel10mVCH22.root")
+
+elif run == '841':
+    e_files = glob("Run841_singleChannel100mVCH22/UX5MilliQan_Run*_singleChannel100mVCH22.root")
+
+elif run == '843':
+    e_files = glob("Run843_muoncut.root")
+
+elif run == '1346':
+    e_files = glob("Run1346_Physics/UX5MilliQan_Run*_Physics_v14.root")
+
+elif run == 'Physics':
+    e_files = glob("muoncut_Physics.root")
+
+
+
+# run 1345 files for background rate calculation
+files = glob("Run1345_software/UX5MilliQan_Run*_software_v14.root")
+runtime = 6.5*60*60
+chain = TChain("t")
+for f in files:
+    chain.Add(f)
+
+
+e_chain = TChain("t")
+for f in e_files:
+    e_chain.Add(f)
+
+cosmic = str(raw_input('Include a cut to exclude cosmic rays? (yes/no): '))
+
+# Choose a height to veto cosmic rays, exclude events in the slabs surrounding the channel with this max height
+#cutlevel = str(raw_input('Height cut level: '))
+cutlevel = str(100)
+
+#plot different pmt's or individual bars
+pmt = str(raw_input('PMT to plot, (R878/ R7725/ ET/ individual): '))
+if pmt == 'ET':
+    bars = [17,25,9,24]
+elif pmt == 'R878':
+    bars = [4,1,8,6,7,16,12,13,2,3,23,0]
+elif pmt == 'R7725':
+    bars = [22,5]
+elif pmt == 'individual':
+    bars = [0,1,24,25,8,9,6,7,16,17,12,13,2,3,22,23,4,5]
+
+hlist=[0.0]*26
+
+for i in bars:
+    title_chan = i
+    if i == 0 or 1 or 24 or 25 or 8 or 9:
+        s_chan1 = "27"  #surrounding channels depending on layer of detector
+        s_chan2 = "10"
+        s_chan3 = "29"
+        if run == '1345':
+            s_chan4 = "18"
+            s_chan5 = "20"
+    elif i == 6 or 7 or 16 or 17 or 12 or 13:
+        s_chan1 = "30"
+        s_chan2 = "11"
+        s_chan3 = "19"
+        if run == '1345':
+            s_chan4 = "28"
+            s_chan5 = "20"
+    elif i == 2 or 3 or 22 or 23 or 4 or 5:
+        s_chan1 = "31"
+        s_chan2 = "14"
+        s_chan3 = "26"
+        if run == '1345':
+            chan4 = "28"
+            chan5 = "21"
+
+    # require pulses in other channels for particles travelling in 'straight line' through
+    if i == 0:
+        chan1 = str('6')
+        chan2 =str('2')
+    if i == 1:
+        chan1 = str('7')
+        chan2 =str('3')
+    if i == 24:
+        chan1 = str('16')
+        chan2 =str('22')
+    if i == 25:
+        chan1 = str('17')
+        chan2 =str('23')
+    if i == 8:
+        chan1 = str('4')
+        chan2 =str('12')
+    if i == 9:
+        chan1 = str('13')
+        chan2 =str('5')
+    if i == 6:
+        chan1 = str('0')
+        chan2 =str('2')
+    if i == 7:
+        chan1 = str('1')
+        chan2 =str('3')
+    if i == 16:
+        chan1 = str('24')
+        chan2 =str('22')
+    if i == 17:
+        chan1 = str('25')
+        chan2 =str('23')
+    if i == 12:
+        chan1 = str('8')
+        chan2 =str('4')
+    if i == 13:
+        chan1 = str('9')
+        chan2 =str('5')
+    if i == 2:
+        chan1 = str('6')
+        chan2 =str('0')
+    if i == 3:
+        chan1 = str('7')
+        chan2 =str('1')
+    if i == 22:
+        chan1 = str('16')
+        chan2 =str('24')
+    if i == 23:
+        chan1 = str('17')
+        chan2 =str('25')
+    if i == 4:
+        chan1 = str('8')
+        chan2 =str('12')
+    if i == 5:
+        chan1 = str('13')
+        chan2 =str('9')
+
+    # cosmic ray cut excluding pulses in surrounding channels
+    def s_cut(chan,cutlevel):
+        return 'MaxIf$(height,chan==' + str(chan) + ')<' +str(cutlevel)
+
+    # cut requiring pulses in other channels
+    def cut(chan,cutlevel):
+        return 'MaxIf$(height,chan==' + str(chan) + ')>' +str(cutlevel)
+
+
+    cut_title = "chan ==" + str(title_chan)
+    c_title = TCut(cut_title)
+    cut_s_chan1 = s_cut(s_chan1,cutlevel)
+    c_s_chan1 = TCut(cut_s_chan1)
+    cut_s_chan2 = s_cut(s_chan2,cutlevel)
+    c_s_chan2 = TCut(cut_s_chan2)
+    cut_s_chan3 = s_cut(s_chan3,cutlevel)
+    c_s_chan3 = TCut(cut_s_chan3)
+    if run == '1345':
+        cut_s_chan4 = s_cut(s_chan4,cutlevel)
+        c_s_chan4 = TCut(cut_s_chan4)
+        cut_s_chan5 = cut(s_chan5,cutlevel)
+        c_s_chan5 = TCut(cut_s_chan5)
+
+    # cut reqiring pulses in all slabs
+    cut0 = cut(18,cutlevel)
+    c0 = TCut(cut0)
+    cut2 =cut(21,cutlevel)
+    c2 = TCut(cut2)
+    cut3 = cut(20,cutlevel)
+    c3 = TCut(cut3)
+    cut4 = cut(28,cutlevel)
+    c4 = TCut(cut4)
+
+    # cut requring pulses in path through detector
+    cut_chan1 = cut(chan1,cutlevel)
+    c_chan1 = TCut(cut_chan1)
+    cut_chan2 = cut(chan2,cutlevel)
+    c_chan2 = TCut(cut_chan2)
+
+
+    def rate_total_cut(title_chan,s_chan1,s_chan2,s_chan3,run):
+        if cosmic == 'yes':
+            if run == '1345':
+                rc_tot = TCut(cut_title)
+                rc_tot += c_s_chan1
+                rc_tot += c_s_chan2
+                rc_tot += c_s_chan3
+                rc_tot += c_s_chan4
+                rc_tot += c_s_chan5
+                return rc_tot
+            else:
+                rc_tot = TCut(cut_title)
+                rc_tot += c_s_chan1
+                rc_tot += c_s_chan2
+                rc_tot += c_s_chan3
+                return rc_tot
+        else:
+            rc_tot = TCut(cut_title)
+            return rc_tot
+
+    def efficiency_total_cut(chan1,chan2,title_chan):
+        ec_tot = TCut(cut0)
+        ec_tot += c2
+        ec_tot += c3
+        ec_tot += c4
+        ec_tot += c_chan1
+        ec_tot += c_chan2
+        ec_tot += c_title
+        return ec_tot
+
+    def title(title_chan,run,cosmic):
+        if cosmic == 'yes':
+            return 'cosmicROC_chan' + str(title_chan) + '_run' + str(run)
+        else:
+            return '_R0C_chan' + str(title_chan) + '_run' + str(run)
+
+
+    def select_chan(i):
+        return "chan == " + str(i)
+
+    #heights histogram for rates
+    hi = "h"+str(i)
+    h = TH1F(hi, select_chan(i), 100, 0, 1400)
+    chain.Draw("Max$(height)>>"+hi , rate_total_cut(title_chan,s_chan1,s_chan2,s_chan3,run))
+
+    #heights histogram for efficiency
+    hei = "he"+str(i)
+    he = TH1F(hei,select_chan(i),100,0,1400)
+    e_chain.Draw( "height>>"+hei , efficiency_total_cut(chan1,chan2,title_chan))
+
+
+
+    def eInt_bin(he, j):
+        tot = float(he.Integral(0,100))
+        bin = float(he.Integral(j,100))
+        eInt = float(bin/tot)
+        return eInt
+
+    def Int_bin(h, j):
+        tot = runtime
+        bin = float(h.Integral(j,100))
+        Int = float(bin/tot)
+        return Int
+
+    #create ROC histograms
+    hri = "hr"+str(i)
+    hr = TH2F(hri, select_chan(i), 100,0,0.0,100,0,0)
+    xentry = [0]*100
+    yentry = [0]*100
+
+    for j in range (0,100):
+        xentry[j] = Int_bin(h, j)
+        yentry[j] = eInt_bin(he, j)
+        hr.Fill(xentry[j],yentry[j])
+
+    hlist[i] = hr
+    gPad.RedrawAxis()
+
+    hlist[i].SetMarkerStyle(3)
+    hlist[i].GetXaxis().SetTitle('Rate (Hz)')
+    hlist[i].GetYaxis().SetTitle('Efficiency')
+
+    if pmt == 'individual':
+        hlist[i].Draw()
+        c1.Print(title(title_chan,run,cosmic)+".pdf")
+
+if pmt != 'individual':
+    for i in bars:
+        if i==17 or i== 22 or i ==4:
+            hlist[i].Draw("PMC")
+        else:
+            hlist[i].Draw("same PMC")
+
+    gPad.RedrawAxis()
+    if run == '843':
+        gPad.BuildLegend(0.2,0.4,0.5,0.7,"")
+    else:
+        gPad.BuildLegend(0.6,0.4,0.9,0.7,"")
+    gStyle.SetOptTitle(0)
+    gStyle.SetPalette(55)
+    c1.Print(str(pmt)+title(title_chan,run,cosmic)+".pdf")
