@@ -1,0 +1,142 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Fri Jul  6 15:11:49 2018
+
+@author: annagriffith
+"""
+
+# looks at rates of coincidence in different channels whilst applying a cut to remove any events caused by cosmic rays
+
+from ROOT import TTree, TFile, TCanvas
+from array import array
+from ROOT import *
+from glob import glob
+
+c1 = TCanvas('c1','The Ntuple canvas',100,10,700,780)
+c1.SetLogy()
+
+#choose run to plot
+
+run = str(raw_input('Run to plot: '))
+if run == '836':
+    files = glob("Run836_singleChannel10mVCH24/UX5MilliQan_Run*_singleChannel10mVCH24.root")
+    runtime = 0.09*60*60
+elif run == '837':
+    files = glob("Run837_singleChannel100mVCH24/UX5MilliQan_Run*_singleChannel100mVCH24.root")
+    runtime = 0.11*60*60
+elif run == '838':
+    files = glob("Run838_singleChannel10mVCH16/UX5MilliQan_Run*_singleChannel10mVCH16.root")
+    runtime = 0.09*60*60
+elif run == '839':
+    files = glob("Run839_singleChannel100mVCH16/UX5MilliQan_Run*_singleChannel100mVCH16.root")
+    runtime = 0.2*60*60
+elif run == '840':
+    files = glob("Run840_singleChannel10mVCH22/UX5MilliQan_Run*_singleChannel10mVCH22.root")
+    runtime = 0.8*60*60
+elif run == '841':
+    files = glob("Run841_singleChannel100mVCH22/UX5MilliQan_Run*_singleChannel100mVCH22.root")
+    runtime = 0.66*60*60
+elif run == '843':
+    files = glob("Run843_muoncut.root")
+    runtime = 194*60*60
+elif run == '1345':
+    files = glob("Run1345_software/UX5MilliQan_Run*_software_v14.root")
+    runtime = 6.5*60*60
+
+# choose channel to require coincidences with, and the height to register a pulse
+chan_coincidence = str(raw_input('Require events in channel: '))
+cutlevel_coincidence = str(input('With a minimum height: '))
+
+
+chain = TChain("t")
+for f in files:
+    chain.Add(f)
+
+# Choose a height to veto cosmic rays, exclude events in the slabs surrounding the channel with this max height
+#cutlevel = str(raw_input('Cosmic ray height cut level: '))
+cutlevel = str(100)
+
+x=["0","1","24","25","8","9","6","7","16","17","12","13","2","3","22","23","4","5"]
+
+for i in [0,1,24,25,8,9,6,7,16,17,12,13,2,3,22,23,4,5]:
+    title_chan = str(i)
+    # selects slabs surrounding channel
+    if i == 0 or 1 or 24 or 25 or 8 or 9:
+        chan1 = "27"
+        chan2 = "10"
+        chan3 = "29"
+    elif i == 6 or 7 or 16 or 17 or 12 or 13:
+        chan1 = "30"
+        chan2 = "11"
+        chan3 = "19"
+    elif i == 2 or 3 or 22 or 23 or 4 or 5:
+        chan1 = "31"
+        chan2 = "14"
+        chan3 = "26"
+
+    # cut excuding events caused by cosmic rays
+    def cut(chan,cutlevel):
+        return 'MaxIf$(height,chan==' + str(chan) + ')<' +str(cutlevel)
+
+    # cut requiring coincidences with chosen channel
+    def cut_coincidence(chan_coincidence,cutlevel_coincidence):
+        return 'MaxIf$(height,chan==' + str(chan_coincidence) + ')>' +str(cutlevel_coincidence)
+
+    cut_title = "chan ==" + str(i)
+    c_title = TCut(cut_title)
+    cut_chan1 = cut(chan1,cutlevel)
+    c_chan1 = TCut(cut_chan1)
+    cut_chan2 = cut(chan2,cutlevel)
+    c_chan2 = TCut(cut_chan2)
+    cut_chan3 = cut(chan3,cutlevel)
+    c_chan3 = TCut(cut_chan3)
+    cut_chan_coincidence = cut_coincidence(chan_coincidence,cutlevel_coincidence)
+    c_chan_coincidence = TCut(cut_chan_coincidence)
+
+
+    def total_cut(chan1,chan2,chan3,i):
+
+        c_tot = TCut(cut_chan1)
+        c_tot += c_chan2
+        c_tot += c_chan3
+        c_tot += c_title
+        c_tot += c_chan_coincidence
+        return c_tot
+
+    def select_chan(i):
+        return "chan == " + str(i)
+
+
+    def title(title_chan,run,cutlevel_coincidence,chan_coincidence):
+        return "cosmiczoomRun"+str(run)+"_rate_chan" + str(title_chan)+"_reqchan"+str(chan_coincidence) +"_" +str(cutlevel_coincidence)
+
+    h = TH1F("h", select_chan(i), 140, 0, 1400)
+
+    chain.Draw("height>>h", total_cut(chan1,chan2,chan3,i))
+    h.GetXaxis().SetTitle('Height (mV)')
+    h.GetYaxis().SetTitle('Entries')
+#print here for heights
+#c1.Print(title(title_chan,run,cutlevel_coincidence,chan_coincidence)+".pdf")
+
+    # integrates max-height graph to produce rate, scales using the runtime in seconds
+    def Int_bin(h, j):
+       tot = runtime
+       bin = float(h.Integral(j,140))
+       Int = float(bin/tot)
+       return Int
+
+    # second histogram to plot rates, currently zoomed into 0-200 xvals, change to 0-1400 for full range
+    hr = TH1F("hr", select_chan(i), 20,0,200)
+    entry = [0]*20
+
+    for j in range (0,20):
+       entry[j] = Int_bin(h, j)
+       hr.Fill(j*10,entry[j])
+       hr.SetBinError(j+1,0)
+
+    hr.Draw("box")
+    hr.GetXaxis().SetTitle('Threshold (mV)')
+    hr.GetYaxis().SetTitle('Rate (Hz)')
+
+    c1.Print(title(title_chan,run,cutlevel_coincidence,chan_coincidence)+".pdf")
