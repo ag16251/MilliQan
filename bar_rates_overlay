@@ -1,0 +1,114 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Fri Jul  6 15:11:49 2018
+
+@author: annagriffith
+"""
+
+#creates an overlay of different bars, plotting rates for each type of pmt
+
+from ROOT import TTree, TFile, TCanvas
+from array import array
+from ROOT import *
+from glob import glob
+
+c1 = TCanvas('c1','The Ntuple canvas',100,10,700,780)
+c1.SetLogy()
+runtime = 0
+
+run = str(raw_input('Run to plot: '))
+if run == '836':
+    files = glob("Run836_singleChannel10mVCH24/UX5MilliQan_Run*_singleChannel10mVCH24.root")
+    runtime = 0.09*60*60
+elif run == '837':
+    files = glob("Run837_singleChannel100mVCH24/UX5MilliQan_Run*_singleChannel100mVCH24.root")
+    runtime = 0.11*60*60
+elif run == '838':
+    files = glob("Run838_singleChannel10mVCH16/UX5MilliQan_Run*_singleChannel10mVCH16.root")
+    runtime = 0.09*60*60
+elif run == '839':
+    files = glob("Run839_singleChannel100mVCH16/UX5MilliQan_Run*_singleChannel100mVCH16.root")
+    runtime = 0.2*60*60
+elif run == '840':
+    files = glob("Run840_singleChannel10mVCH22/UX5MilliQan_Run*_singleChannel10mVCH22.root")
+    runtime = 0.8*60*60
+elif run == '841':
+    files = glob("Run841_singleChannel100mVCH22/UX5MilliQan_Run*_singleChannel100mVCH22.root")
+    runtime = 0.66*60*60
+elif run == '843':
+    files = glob("Run843_muoncut.root")
+    runtime = 194*60*60
+elif run == '1345':
+    files = glob("Run1345_software/UX5MilliQan_Run*_software_v14.root")
+    runtime = 6.5*60*60
+
+chain = TChain("t")
+for f in files:
+    chain.Add(f)
+
+pmt = str(raw_input('PMT to plot, (R878/ R7725/ ET): '))
+if pmt == 'ET':
+    bars = [24,25,9,17]
+elif pmt == 'R878':
+    bars = [4,1,8,6,7,16,12,13,2,3,23,0]
+elif pmt == 'R7725':
+    bars = [5,22]
+
+
+def print_chan(i, run,pmt):
+    return "zoomRun"+str(run)+"_rate_"+ str(pmt) +".pdf"
+
+
+
+def h(i):
+    hi = "h"+str(i)
+    return hi
+
+hlist=[0.0]*26
+
+for i in bars:
+
+    def select_chan(i):
+        return "chan == " + str(i)
+
+    hi = "h"+str(i)
+    h = TH1F(hi, select_chan(i), 140, 0, 1400)
+    chain.Draw("Max$(height)>>"+hi, select_chan(i))
+
+    def Int_bin(h, j):
+        tot = runtime
+        bin = float(h.Integral(j,140))
+        Int = float(bin/tot)
+        return Int
+
+    hri = "hr"+str(i)
+    hr = TH1F(hri, select_chan(i), 20,0,200)
+    entry = [0]*20
+
+    for j in range (0,20):
+        entry[j] = Int_bin(h, j)
+        hr.Fill(j*10,entry[j])
+        hr.SetBinError(j+1,0)
+
+
+    hr.SetLineWidth(2)
+
+    hlist[i] = hr
+
+for i in bars:
+    if i==24 or i== 5 or i ==4:
+        hlist[i].GetXaxis().SetTitle('Threshold (mV)')
+        hlist[i].GetYaxis().SetTitle('Rate (Hz)')
+        hlist[i].Draw("box PLC")
+    else:
+
+        hlist[i].Draw("same PLC")
+
+
+gPad.BuildLegend(0.4,0.4,0.6,0.7,"")
+gStyle.SetOptTitle(0)
+c1.Print(print_chan(i,run,pmt))
+
+
+
