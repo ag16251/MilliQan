@@ -1,6 +1,6 @@
 # MilliQan
 
-Most files have option at the beginning to choose which run to plot, and a reasonably sensible naming system, some may need updating to include option of plotting Physics runs 
+Most files have option at the beginning to choose which run to plot, and a reasonably sensible naming system, some may need updating to include option of plotting Physics runs, or to plot nPE instead of Max$(height)
 
 Terms used:
 "muon cut" requires events of a certain height (normally set to 100) in 'slabs' 18, 20, 28 & 21
