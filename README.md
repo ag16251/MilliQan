@@ -13,6 +13,8 @@ Files:
 
 "background_fit" - plots a scaled 'height' graph of the background noise from Run 1345 against the Physics runs (or run 843). Hashed parts include a power law fit to the background part, can easily change to plot nPE but will need to change to alternative histogram binning option. 
 
+"background_fit_total" _ same as above but adds up each individual channel to find total background. Currently set to plot nPE.
+
 "bar_coincidence_rates" - includes 3 options. Currently set to zoom in on the x values 0-200
 1. to plot the rates (integrates 'max-height' graph) in each channel
 2. to plot predicted coincidence rates in each channel, takes two rate (in Hz) vs threshold histograms, multiplies them together, and then scales by 1280x10-9 s.  The result is a plot of coincidence rate (Hz) vs threshold for those two channels.
@@ -40,7 +42,7 @@ Files:
 
 "splashes" -  Requires pulses going straight through the detector, ie through channels 18-0-20-6-28-2-21, the specific route is noted by 'titlechan' or 'passing through chan' on the title of the graph produced. Requiring this path, heights(/nPE) in surrounding channels will be plotted to look at the 'splashes produced' in other bars.
 
-
+"splashes_total" - takes all 6 "spalshes" plots from above and adds them together. Then fits two power laws, one background prediction with the parameter p1 set using a fit from "background_fit", one taking that power law and adding another one. 
 
 
 
