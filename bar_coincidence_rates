@@ -60,20 +60,20 @@ if coin == 'yes':
     chan2 = int(raw_input('Requiring events in channel: '))
     cutlevel = str(input('Set a cut level: '))
 
-#naming- "zoom" since only the initial part of the histogram is plotted
+#naming- 
 #         "Run" which run is plotted
 #         "rate_chan" rate is plotted in specified channel
 #         "reqchan" requiring events in the following channel
 #         specifies whether the rate, coincidence rate or predicted coincidence rate is plotted, with associated height requirement (cutlevel)
 
 def pprint_chan(run, coin, i, chan2):
-        return "zoomRun"+str(run)+"_rate_chan" + str(i)+"_reqchan"+str(chan2) +"predictedcoincidence.pdf"
+        return "Run"+str(run)+"_rate_chan" + str(i)+"_reqchan"+str(chan2) +"predictedcoincidence.pdf"
 
 def cprint_chan(run, coin, chan1, chan2, cutlevel):
-    return "zoomRun"+str(run)+"_rate_chan" + str(chan1)+"_reqchan"+str(chan2) +"coincidence_"+str(coin)+str(cutlevel)+".pdf"
+    return "Run"+str(run)+"_rate_chan" + str(chan1)+"_reqchan"+str(chan2) +"coincidence_"+str(coin)+str(cutlevel)+".pdf"
 
 def print_chan(i,run):
-        return "zoomRun"+str(run)+"_rate_chan" + str(i) +".pdf"
+        return "Run"+str(run)+"_rate_chan" + str(i) +".pdf"
 
 
 def h(i):
