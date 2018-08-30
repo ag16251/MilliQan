@@ -103,7 +103,7 @@ for i in bars:
             return c_tot
 
     def title(title_chan,run,cutlevel):
-        return 'cosmicraycut_height_chan' + str(title_chan) + '_Physicsrun_cutlevel_'+str(cutlevel)
+        return 'maxheight_chan' + str(title_chan) + '_Physicsrun_cutlevel_'+str(cutlevel)
 
 
     hbi = "hb"+str(i)
@@ -111,6 +111,7 @@ for i in bars:
 #    binLowE = [0,10,20,30,40,50,60,70,80,90,100]
 #   binLowE = [0,100,200,300,400,500,600,700,800,900,1000,1100,1200,1300,1400,1500,1600,1700,1800,1900,2000,2100,2200,2300,2400,2500,2600,2700,2800,2900,3000,3100,3200,3300,3400,3500,3600,3700,3800,3900,4000,4250,4500,5500]
 
+#Plots max height in background data
     hb = TH1F(hbi, "background chan = " + str(i), 22, array('f',binLowE))
     hb.GetXaxis().SetTitle('Height (mV)')
     hb.GetYaxis().SetTitle('Events per mV')
@@ -119,6 +120,7 @@ for i in bars:
     hb.Scale(1.,"width")
     hb.Scale(31.508)
 
+#use to fit a power law to background
 #    func = TF1("func", "[0]*pow(x,[1])", 1., 100.)
 #   func.SetParameter(0,1.E5)
 #   func.SetParameter(1,-2.0)
@@ -144,6 +146,7 @@ for i in bars:
 #   gStyle.SetStatH(0.1)
 #   gStyle.SetOptFit(0011)
 
+#plots max height in Physics runs
     hi = "h"+str(i)
 
     h = TH1F(hi, "Physics run chan = " +str(i), 22, array('f',binLowE))
